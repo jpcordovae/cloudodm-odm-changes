@@ -4,7 +4,7 @@
 photographs with [OpenDroneMap](https://github.com/OpenDroneMap/ODM) (ODM),
 which is licensed under the **GNU Affero General Public License v3.0**.
 We run ODM through [NodeODM](https://github.com/OpenDroneMap/NodeODM)
-(the official `opendronemap/nodeodm` image) with the three modifications below.
+(the official `opendronemap/nodeodm` image) with the four modifications below.
 The second and third are also applied by ODMDisplay, our desktop application, to the
 copy of OpenDroneMap its local-processing add-on installs.
 This repository publishes them, as the AGPL asks of software offered over a
@@ -104,6 +104,42 @@ A file with no such names behaves exactly as before.
 COPY checkpoint-report.py /code/checkpoint-report.py
 COPY add-checkpoints.py /tmp/add-checkpoints.py
 RUN python3 /code/checkpoint-report.py --self-test && python3 /tmp/add-checkpoints.py && rm -f /tmp/add-checkpoints.py
+```
+
+## 4. A second attempt when the default solving is clearly wrong
+
+ODM's default solving (incremental) ignores the camera angles a photo records.
+Usually that is a strength: recorded angles can be wrong. On some flights it is
+not enough: a survey camera with a long lens, flown level over flat ground,
+can come out bent by tens of metres with a lens "calibration" no lens has (the
+EuroSDR benchmark above: focal length up 61%, cameras 98 m off the shape of
+their own positions). Solving from the recorded positions and angles
+(`--sfm-algorithm triangulation`) gets that flight right, and gets wrong a
+flight whose recorded angles are bad. So neither is the default for
+everything.
+
+- `second_attempt.py` (copied to `opendm/second_attempt.py`) judges the result
+  right after `opensfm reconstruct`: the focal length moved more than 20%, the
+  radial distortion is beyond 0.5, or the cameras are more than 5 m
+  horizontally or 10 m vertically from the shape of their own positions once a
+  constant shift is allowed. If so, and every photo records its angles, it
+  solves once more in the other mode, reusing the features and matches, and
+  keeps the second result only if it is sound by the same test and places at
+  least nine tenths of the photos. Otherwise the first is put back. What
+  happened is written to `second_attempt.json`.
+- `add-second-attempt.py` edits ODM to call it (`opendm/osfm.py`) and to copy
+  the note beside the report (`stages/odm_report.py`).
+
+On the benchmark's photos with the bent first result in place: judged broken,
+solved again in 106 minutes, all 1,024 photos placed; at 46 surveyed
+checkpoints the shape is right to 4 cm east, 4.5 cm north and 12 cm in height
+after the constant offset of the photos' ordinary GPS. `ODM_NO_SECOND_ATTEMPT=1`
+switches it off.
+
+```dockerfile
+COPY second_attempt.py /code/opendm/second_attempt.py
+COPY add-second-attempt.py /tmp/add-second-attempt.py
+RUN python3 /code/opendm/second_attempt.py --self-test && python3 /tmp/add-second-attempt.py && rm -f /tmp/add-second-attempt.py
 ```
 
 ## Licence
