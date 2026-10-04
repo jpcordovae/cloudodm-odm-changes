@@ -4,7 +4,7 @@
 photographs with [OpenDroneMap](https://github.com/OpenDroneMap/ODM) (ODM),
 which is licensed under the **GNU Affero General Public License v3.0**.
 We run ODM through [NodeODM](https://github.com/OpenDroneMap/NodeODM)
-(the official `opendronemap/nodeodm` image) with the two modifications below.
+(the official `opendronemap/nodeodm` image) with the three modifications below.
 The second is also applied by ODMDisplay, our desktop application, to the
 copy of OpenDroneMap its local-processing add-on installs.
 This repository publishes it, as the AGPL asks of software offered over a
@@ -69,6 +69,42 @@ RUN python3 /tmp/fix-dji-angles.py && rm -f /tmp/fix-dji-angles.py
 
 Like the first script, it refuses to run if the code it expects has changed
 upstream. It takes the path of `photo.py` as an optional argument.
+
+## 3. Checkpoints
+
+OpenDroneMap fits the model to every point of a ground-control file, so a run
+can say how well it honoured its control but not how accurate it is where it
+had none. With this change, a point whose name (the seventh column) starts with
+`CHK` or `CHECK` is a checkpoint: left out of the adjustment and measured after
+it.
+
+```
+EPSG:32719
+345678.12 6289012.34 512.30 4012.5 2210.0 DJI_0034.JPG GCP1
+345702.55 6289120.90 514.02 1508.2 3310.7 DJI_0041.JPG CHK1
+```
+
+- `add-checkpoints.py` edits ODM: `opendm/gcp.py` keeps those lines out of the
+  adjustment and the georeferencing; `stages/dataset.py` treats a file that
+  holds checkpoints only as no control (the photos' own positions georeference
+  the run, which is the usual check of an RTK flight); `stages/odm_report.py`
+  runs the report. With `--use-exif`, where ODM does not fit to the file at
+  all, every point in it is reported as a checkpoint.
+- `checkpoint-report.py` locates each checkpoint from its marks with the
+  reconstruction's own cameras (the rays through the marked pixels are
+  intersected) and compares it with its surveyed position. It writes
+  `odm_report/checkpoints.json` and a PDF in English (`checkpoints.pdf`) and
+  Spanish (`checkpoints.es.pdf`): RMSE, mean, median and largest error, each
+  point's error, and a plan of the errors. It also runs by itself on any
+  OpenSfM reconstruction: see its first lines.
+
+A file with no such names behaves exactly as before.
+
+```dockerfile
+COPY checkpoint-report.py /code/checkpoint-report.py
+COPY add-checkpoints.py /tmp/add-checkpoints.py
+RUN python3 /code/checkpoint-report.py --self-test && python3 /tmp/add-checkpoints.py && rm -f /tmp/add-checkpoints.py
+```
 
 ## Licence
 
