@@ -7,7 +7,7 @@ We run ODM through [NodeODM](https://github.com/OpenDroneMap/NodeODM)
 (the official `opendronemap/nodeodm` image) with the three modifications below.
 The second is also applied by ODMDisplay, our desktop application, to the
 copy of OpenDroneMap its local-processing add-on installs.
-This repository publishes it, as the AGPL asks of software offered over a
+This repository publishes them, as the AGPL asks of software offered over a
 network.
 
 ## 1. `--scene-classify`
