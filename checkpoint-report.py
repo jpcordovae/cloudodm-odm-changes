@@ -314,6 +314,10 @@ def cm(v):
 
 
 def write_pdf(report, path, title, lang):
+    import warnings
+    # Written for the PDF library's older calls, which every version still
+    # accepts; the newer ones only add a notice per cell to the run's log.
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
     from fpdf import FPDF
     t = TEXT[lang]
     S = report["checkpoints"]["summary"]

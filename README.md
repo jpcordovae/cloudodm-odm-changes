@@ -5,7 +5,7 @@ photographs with [OpenDroneMap](https://github.com/OpenDroneMap/ODM) (ODM),
 which is licensed under the **GNU Affero General Public License v3.0**.
 We run ODM through [NodeODM](https://github.com/OpenDroneMap/NodeODM)
 (the official `opendronemap/nodeodm` image) with the three modifications below.
-The second is also applied by ODMDisplay, our desktop application, to the
+The second and third are also applied by ODMDisplay, our desktop application, to the
 copy of OpenDroneMap its local-processing add-on installs.
 This repository publishes them, as the AGPL asks of software offered over a
 network.
